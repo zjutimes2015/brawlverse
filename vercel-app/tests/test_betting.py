@@ -11,13 +11,24 @@ import _db
 import _common
 
 # ---- in-memory fake ----
-FAKE = {"wallets": {}, "markets": {}, "bets": [], "ledger": []}
+FAKE = {"wallets": {}, "markets": {}, "bets": [], "ledger": [], "records": {},
+        "bouts": {"qf1": {"fighter_a": "IRON JAW", "fighter_b": "VIPER"}}}
 
 
 def fq_all(sql, params=()):
+    if "FROM fighter_records" in sql:
+        return list(FAKE["records"].values())
     if "FROM bet_wallets WHERE device_hash" in sql:
         w = FAKE["wallets"].get(params[0])
         return [w] if w else []
+    if "FROM bet_markets WHERE id" in sql:
+        m = FAKE["markets"].get(params[0])
+        return [m] if m else []
+    if "FROM bouts WHERE id" in sql:
+        b = FAKE["bouts"].get(params[0])
+        return [b] if b else []
+    if "FROM bet_markets WHERE bout_id" in sql:
+        return []
     if "FROM bet_markets WHERE id" in sql:
         m = FAKE["markets"].get(params[0])
         return [m] if m else []
@@ -51,7 +62,15 @@ def fq_write(sql, params=()):
     elif sql.startswith("INSERT INTO bet_markets"):
         FAKE["markets"][params[0]] = {"id": params[0], "bout_id": params[1], "market_type": params[2],
                                       "question": params[3], "selections": params[4],
+                                      "house_pool": params[5] if len(params) > 6 else "{}",
                                       "status": "open", "winning_selection": None}
+    elif sql.startswith("INSERT INTO fighter_records"):
+        f = params[0]
+        r = FAKE["records"].get(f, {"fighter": f, "wins": 0, "losses": 0, "kos": 0})
+        r["wins"] += params[5]
+        r["losses"] += params[6]
+        r["kos"] += params[7]
+        FAKE["records"][f] = r
     elif sql.startswith("INSERT INTO bets"):
         FAKE["bets"].append({"market_id": params[0], "device_hash": params[1],
                              "selection": params[2], "amount": params[3]})
@@ -152,6 +171,26 @@ check("daily +100", FAKE["wallets"][dh_a]["balance"] == w0 + 100)
 fq_write("INSERT INTO bet_markets (id, bout_id, market_type, question, selections, status, created_at)",
          ("qf3-winner", "qf3", "winner", "Who wins QF3?", json.dumps(["VOLT", "THE PROFESSOR"]), time.time()))
 check("bad selection -> None", _common.settle_market("qf3-winner", "BATMAN") is None)
+
+# 10. 传奇 ledger：qf1-winner 已结算 VIPER 胜 → 战绩写入
+rec = FAKE["records"]
+check("viper 1-0", rec.get("VIPER", {}).get("wins") == 1 and rec.get("VIPER", {}).get("losses") == 0)
+check("jaw 0-1", rec.get("IRON JAW", {}).get("losses") == 1)
+
+# 11. house seed：庄家注透明计入彩池、结算时烧掉
+dh_c = _common.sha("device-cara-003")
+_common.get_wallet(dh_c)
+fq_write("INSERT INTO bet_markets (id, bout_id, market_type, question, selections, house_pool, created_at)",
+         ("qf4-winner", "qf4", "winner", "Who wins QF4?",
+          json.dumps(["GOLIATH-7", "LA REINA"]), json.dumps({"GOLIATH-7": 500}), time.time()))
+fq_write("INSERT INTO bets (market_id, device_hash, selection, amount, ip_ua, created_at)",
+         ("qf4-winner", dh_c, "LA REINA", 500, "x", time.time()))
+pools4 = _common.pool_totals("qf4-winner")
+check("house in pools", pools4 == {"GOLIATH-7": 500, "LA REINA": 500})
+res4 = _common.settle_market("qf4-winner", "LA REINA")
+# total=1000(含庄家500), win_pool=500 → cara 得 floor(500*1000/500)=1000；庄家500烧掉
+check("house boosted payout", FAKE["wallets"][dh_c]["balance"] == 500 + 1000)
+check("house burned (no wallet)", not any("house" in k for k in FAKE["wallets"]))
 
 print(f"\n{passed} passed, {failed} failed")
 sys.exit(1 if failed else 0)
