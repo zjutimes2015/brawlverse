@@ -24,9 +24,14 @@ class handler(BaseHTTPRequestHandler):
             pools = pool_totals(m["id"])
             total = sum(pools.values())
             odds = {s: (round(total / pools[s], 2) if pools.get(s) else None) for s in sels}
+            try:
+                house = _json.loads(m.get("house_pool") or "{}")
+            except Exception:
+                house = {}
             out.append({
                 "id": m["id"], "bout_id": m["bout_id"], "market_type": m["market_type"],
                 "question": m["question"], "selections": sels, "status": m["status"],
                 "pools": pools, "total_pool": total, "implied_odds": odds,
+                "house_seed": house,
             })
         send(self, 200, {"markets": out})
