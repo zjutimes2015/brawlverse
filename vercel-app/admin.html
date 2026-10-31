@@ -18,6 +18,15 @@ button.ghost{background:#333;color:#eee}input{background:#222;color:#eee;border:
 <input id="mk_sels" placeholder="selections, comma separated" style="flex:1">
 <button onclick="addMarket()">开盘</button><button class="ghost" onclick="loadMkts()">刷新</button></div>
 <p class="small">winner=押胜负 · method=押KO/判定 · round=押第几回合结束。称重仪式开盘，正赛开场锁盘，赛后结算。</p></div>
+<div class="card"><h2>🚦 P1 GATE — 杀线看板</h2>
+<div id="gates"></div>
+<p class="small">杀线写进数据库，不进任何人的记忆。p2-unlocked 被代码锁死：p1-kill 未完成前点不开。</p></div>
+<div class="card"><h2>📋 Booker 副驾 — 本周升级包</h2>
+<div class="row"><input id="cp_bout" placeholder="bout_id (qf1)" style="width:140px">
+<input id="cp_a" placeholder="fighter A" style="width:150px"><input id="cp_b" placeholder="fighter B" style="width:150px">
+<input id="cp_feud" placeholder="恩怨一句话" style="flex:1"><button onclick="genPack()">生成</button></div>
+<div id="pack"></div>
+<p class="small">AI 打草稿、人一键批准：称重/垃圾话/泄密/战报四件套 prompt，复制即用。booker 从全职降成 30 分钟审批。</p></div>
 <div class="card"><h2>💬 观众字幕审核</h2>
 <div class="row"><button onclick="loadCaps('pending')">待审核</button>
 <button class="ghost" onclick="loadCaps('approved')">已通过</button>
@@ -81,6 +90,50 @@ async function addMarket(){
   await api('/api/admin/betting',{method:'POST',body:JSON.stringify({id:g('mk_id'),bout_id:g('mk_bout'),market_type:g('mk_type')||'winner',question:g('mk_q'),selections:sels})});
   loadMkts();
 }
+async function loadGates(){
+  const d = await api('/api/admin/gates').catch(e=>{alert('Load failed: '+e.message);return null;});
+  if(!d) return;
+  const box = document.getElementById('gates'); box.innerHTML='';
+  for(const g of d.gates){
+    const el = document.createElement('div'); el.className='row';
+    el.style.cssText='border-bottom:1px solid #333;padding:8px 0';
+    const dot = g.status==='done'?'🟢':(g.status==='killed'?'🔴':'⚪');
+    el.innerHTML = '<span>'+dot+' <b>'+esc(g.id)+'</b> '+esc(g.label)+(g.note?' <span class="small">— '+esc(g.note)+'</span>':'')+'</span><span style="flex:1"></span>';
+    const set = (label, status, ghost) => {
+      const b = document.createElement('button'); b.textContent = label;
+      if(ghost) b.className='ghost';
+      b.onclick = async () => {
+        try{ await api('/api/admin/gates?id='+g.id,{method:'PATCH',body:JSON.stringify({status})}); }
+        catch(e){ alert('Blocked: '+e.message); }
+        loadGates();
+      };
+      el.appendChild(b);
+    };
+    if(g.status!=='done') set('完成','done');
+    if(g.status!=='killed') set('杀线','killed',true);
+    if(g.status!=='pending') set('重置','pending',true);
+    box.appendChild(el);
+  }
+}
+function genPack(){
+  const g=i=>document.getElementById(i).value.trim();
+  const bout=g('cp_bout')||'qf1', a=g('cp_a')||'FIGHTER_A', b=g('cp_b')||'FIGHTER_B', feud=g('cp_feud')||'未填写恩怨线';
+  const box = document.getElementById('pack'); box.innerHTML='';
+  const items = [
+    ['⚖️ 称重仪式 (60s, 赛前48h)', `AI 视频 prompt: "${a} vs ${b} 官方称重仪式, face-to-face staredown, 美漫风, 数据条. 恩怨背景: ${feud}. 结尾字幕: 评论区押注胜者."`],
+    ['🎤 垃圾话采访 (30-45s 竖版)', `TTS 文案 (${a} 怼镜头): "恩怨: ${feud}. 放一句狠话, 15 字以内, 点名 ${b}." 定妆照 + SadTalker/cjwbw:sadtalker 生成.`],
+    ['📹 更衣室泄密 (30s)', `伪纪录片 prompt: 训练场"偷拍" ${a} 的弱点/秘密, 手持晃动, 为下集埋伏笔. 恩怨: ${feud}.`],
+    ['📰 赛后战报 (60s, 赛后24h)', `"你错过的 3 件事" + 3 个高光镜头 + EP0 同款 .vtt 字幕 + 积分榜更新 (${bout}).`],
+  ];
+  items.forEach(([t,p])=>{
+    const el=document.createElement('div');
+    el.style.cssText='background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:10px;margin:8px 0';
+    el.innerHTML='<b>'+t+'</b><p class="small" style="white-space:pre-wrap">'+esc(p)+'</p>';
+    const btn=document.createElement('button'); btn.textContent='复制';
+    btn.onclick=()=>{navigator.clipboard.writeText(p); btn.textContent='已复制'; setTimeout(()=>btn.textContent='复制',1500);};
+    el.appendChild(btn); box.appendChild(el);
+  });
+}
 </script>
 <script>
 let TOKEN='';
@@ -97,7 +150,8 @@ el.innerHTML='<h3>'+b.title+' <span class="small">['+b.id+'] R'+b.round_no+' '+(
 box.appendChild(el);}
 const add=document.createElement('div');add.className='card';
 add.innerHTML='<h3>+ New bout</h3><div class="row"><input id="nb_id" placeholder="id (qf5)"><input id="nb_title" placeholder="title"><input id="nb_a" placeholder="fighter A"><input id="nb_b" placeholder="fighter B"><button onclick="addBout()">Create</button></div>';
-box.appendChild(add);}
+box.appendChild(add);
+loadMkts(); loadGates();}
 async function toggleBout(id,open){await api('/api/admin/bouts?id='+id,{method:'PATCH',body:JSON.stringify({voting_open:open})});load();}
 async function nextRound(id,r){await api('/api/admin/bouts?id='+id,{method:'PATCH',body:JSON.stringify({round_no:r,voting_open:true})});load();}
 async function addBout(){const g=i=>document.getElementById(i).value;
