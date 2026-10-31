@@ -10,6 +10,14 @@ button.ghost{background:#333;color:#eee}input{background:#222;color:#eee;border:
 <div class="card"><div class="row"><input id="token" type="password" placeholder="Admin token" style="flex:1">
 <button onclick="load()">Connect</button></div><p class="small">Token = ADMIN_TOKEN env var on Vercel.</p></div>
 <div id="bouts"></div>
+<div class="card"><h2>🎲 押注盘口</h2>
+<div id="mkts"></div>
+<div class="row"><input id="mk_id" placeholder="id (qf1-winner)"><input id="mk_bout" placeholder="bout_id (qf1)">
+<input id="mk_q" placeholder="question" style="flex:1"></div>
+<div class="row"><input id="mk_type" placeholder="winner|method|round" style="width:150px">
+<input id="mk_sels" placeholder="selections, comma separated" style="flex:1">
+<button onclick="addMarket()">开盘</button><button class="ghost" onclick="loadMkts()">刷新</button></div>
+<p class="small">winner=押胜负 · method=押KO/判定 · round=押第几回合结束。称重仪式开盘，正赛开场锁盘，赛后结算。</p></div>
 <div class="card"><h2>💬 观众字幕审核</h2>
 <div class="row"><button onclick="loadCaps('pending')">待审核</button>
 <button class="ghost" onclick="loadCaps('approved')">已通过</button>
@@ -39,6 +47,40 @@ async function loadCaps(status){
   }
 }
 function esc(s){ return String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+async function loadMkts(){
+  const d = await api('/api/admin/betting').catch(e=>{alert('Load failed: '+e.message);return null;});
+  if(!d) return;
+  const box = document.getElementById('mkts'); box.innerHTML='';
+  if(!d.markets.length){ box.innerHTML='<p class="small">暂无盘口</p>'; return; }
+  for(const m of d.markets){
+    const el = document.createElement('div'); el.className='row';
+    el.style.cssText='border-bottom:1px solid #333;padding:8px 0';
+    const pools = Object.entries(m.pools).map(([k,v])=>k+':'+v).join(' ');
+    el.innerHTML = '<span>['+esc(m.id)+'] <b>'+esc(m.question)+'</b> <span class="small">'+m.status+' · pool '+m.total_pool+' · '+esc(pools)+'</span></span><span style="flex:1"></span>';
+    const btn = (label, body, ghost) => {
+      const b = document.createElement('button'); b.textContent = label;
+      if(ghost) b.className='ghost';
+      b.onclick = async () => { await api('/api/admin/betting?id='+m.id,{method:'PATCH',body:JSON.stringify(body)}); loadMkts(); };
+      el.appendChild(b);
+    };
+    if(m.status==='open'){ btn('锁盘',{action:'lock'},true); }
+    if(m.status!=='settled'){
+      const sel = document.createElement('select');
+      sel.style.cssText='background:#222;color:#eee;border:1px solid #444;border-radius:6px;padding:8px;margin:4px';
+      m.selections.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+      el.appendChild(sel);
+      btn('结算',null); // placeholder replaced below
+      el.lastChild.onclick = async () => { await api('/api/admin/betting?id='+m.id,{method:'PATCH',body:JSON.stringify({action:'settle',winning_selection:sel.value})}); loadMkts(); };
+    }
+    box.appendChild(el);
+  }
+}
+async function addMarket(){
+  const g=i=>document.getElementById(i).value;
+  const sels=g('mk_sels').split(',').map(s=>s.trim()).filter(Boolean);
+  await api('/api/admin/betting',{method:'POST',body:JSON.stringify({id:g('mk_id'),bout_id:g('mk_bout'),market_type:g('mk_type')||'winner',question:g('mk_q'),selections:sels})});
+  loadMkts();
+}
 </script>
 <script>
 let TOKEN='';
