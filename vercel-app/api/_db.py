@@ -51,6 +51,42 @@ CREATE TABLE IF NOT EXISTS fan_captions (
   created_at DOUBLE PRECISION NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_captions_status ON fan_captions (status, created_at);
+CREATE TABLE IF NOT EXISTS bet_wallets (
+  device_hash TEXT PRIMARY KEY,
+  balance BIGINT NOT NULL DEFAULT 0,
+  last_claim DOUBLE PRECISION NOT NULL DEFAULT 0,
+  created_at DOUBLE PRECISION NOT NULL
+);
+CREATE TABLE IF NOT EXISTS bet_markets (
+  id TEXT PRIMARY KEY,
+  bout_id TEXT NOT NULL,
+  market_type TEXT NOT NULL,
+  question TEXT NOT NULL,
+  selections TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  winning_selection TEXT,
+  created_at DOUBLE PRECISION NOT NULL,
+  settled_at DOUBLE PRECISION
+);
+CREATE TABLE IF NOT EXISTS bets (
+  id BIGSERIAL PRIMARY KEY,
+  market_id TEXT NOT NULL,
+  device_hash TEXT NOT NULL,
+  selection TEXT NOT NULL,
+  amount BIGINT NOT NULL,
+  ip_ua TEXT NOT NULL DEFAULT '',
+  created_at DOUBLE PRECISION NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_bets_market ON bets (market_id);
+CREATE TABLE IF NOT EXISTS bet_ledger (
+  id BIGSERIAL PRIMARY KEY,
+  device_hash TEXT NOT NULL,
+  delta BIGINT NOT NULL,
+  reason TEXT NOT NULL,
+  ref TEXT NOT NULL DEFAULT '',
+  created_at DOUBLE PRECISION NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ledger_device ON bet_ledger (device_hash, created_at);
 """
 
 SEED = [
