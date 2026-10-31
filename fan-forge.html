@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAN FORGE — BRAWLVERSE</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="topnav"><a href="index.html">← BRAWLVERSE</a></nav>
+<header class="hero small">
+  <h1 class="logo">FAN FORGE</h1>
+  <p class="tagline">YOU INVENT THE FIGHTER — <span>AI BUILDS THEM</span></p>
+  <p class="sub">Drop a one-line persona. Our AI forges the name, backstory and fight card.<br>Top-voted fan fighters enter <b>Season 2</b>.</p>
+</header>
+
+<section class="forge-form">
+  <h2>FORGE YOUR FIGHTER</h2>
+  <form id="forgeForm">
+    <input id="fname" maxlength="24" placeholder="Fighter name — e.g. TURBO GRANNY" required>
+    <input id="fpersona" maxlength="120" placeholder="One-line persona — e.g. a retired astronaut who boxes in zero-g boots" required>
+    <button type="submit">FORGE →</button>
+  </form>
+  <p class="note">Prototype: submissions are stored in your browser and shown below as queued for the Season 2 vote.</p>
+</section>
+
+<section>
+  <h2>COMMUNITY QUEUE</h2>
+  <div class="cards" id="queueGrid"><p class="note" id="queueEmpty">No fan submissions yet — be the first.</p></div>
+</section>
+
+<section>
+  <h2>FORGED EXAMPLES</h2>
+  <p class="note" style="margin-bottom:20px">What one line becomes — AI-generated cards from fan-style submissions.</p>
+  <div class="cards">
+    <div class="card yellow">
+      <img src="assets/fan-volt.jpg" alt="Volt">
+      <h3>VOLT</h3>
+      <p class="style">Fan submission: "a lightning spirit that boxes"</p>
+      <p class="bio">He doesn't dodge punches. He <i>is</i> the punch. Undefeated in thunderstorms.</p>
+    </div>
+    <div class="card yellow">
+      <img src="assets/fan-goliath7.jpg" alt="Goliath-7">
+      <h3>GOLIATH-7</h3>
+      <p class="style">Fan submission: "a decommissioned war mech who found peace in boxing"</p>
+      <p class="bio">Built for war. Rebuilt for the ring. Has never lost — has never wanted to win.</p>
+    </div>
+    <div class="card yellow">
+      <img src="assets/fan-lareina.jpg" alt="La Reina">
+      <h3>LA REINA</h3>
+      <p class="style">Fan submission: "a masked luchadora queen defending her crown"</p>
+      <p class="bio">The crown stays on. The opponents don't stay up. ¡Viva la Reina!</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>BRAWLVERSE · FAN FORGE</p>
+  <p class="aigc">All fighters, footage and artwork are AI-generated.</p>
+</footer>
+
+<script>
+const KEY='bv_forge_queue';
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||[]}catch(e){return[]}}
+function save(q){localStorage.setItem(KEY,JSON.stringify(q))}
+function render(){
+  const q=load(),g=document.getElementById('queueGrid');
+  document.getElementById('queueEmpty').style.display=q.length?'none':'block';
+  g.querySelectorAll('.card.fan').forEach(e=>e.remove());
+  q.forEach(f=>{
+    const d=document.createElement('div');d.className='card fan';
+    d.innerHTML='<div class="q">?</div><h3>'+f.name+'</h3><p class="style">Fan submission: "'+f.persona+'"</p><p class="bio">Queued for Season 2 vote.</p>';
+    g.appendChild(d);
+  });
+}
+document.getElementById('forgeForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const name=document.getElementById('fname').value.trim().toUpperCase();
+  const persona=document.getElementById('fpersona').value.trim();
+  if(!name||!persona)return;
+  const q=load();q.unshift({name,persona});save(q);render();e.target.reset();
+});
+render();
+</script>
+</body>
+</html>
