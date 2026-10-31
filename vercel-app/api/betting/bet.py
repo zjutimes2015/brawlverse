@@ -5,7 +5,9 @@ import time
 
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "subscription"))
 from _common import MAX_BET, get_wallet  # noqa: E402
+from _entitlements import entitlements  # noqa: E402
 from _db import (check_rate, client_ip, q_one, q_write, read_json, send,  # noqa: E402
                  send_cors_preflight, sha)
 
@@ -32,8 +34,10 @@ class handler(BaseHTTPRequestHandler):
         if not market_id or not selection or not device_id or len(str(device_id)) < 8:
             send(self, 400, {"error": "market_id, selection, device_id required"})
             return
-        if amount <= 0 or amount > MAX_BET:
-            send(self, 400, {"error": "amount must be 1..%d" % MAX_BET})
+        dh = sha(str(device_id))
+        cap = MAX_BET * entitlements(dh)["bet_max_mult"]
+        if amount <= 0 or amount > cap:
+            send(self, 400, {"error": "amount must be 1..%d" % cap})
             return
         ip = client_ip(self)
         if not check_rate(ip):
