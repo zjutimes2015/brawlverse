@@ -17,6 +17,7 @@
   <h2>EP0 — SAMPLE BOUT: IRON JAW vs VIPER</h2>
   <video controls preload="metadata" poster="assets/viper-portrait.jpg">
     <source src="brawlverse-sample-ep0.mp4" type="video/mp4">
+    <track kind="subtitles" src="ep0.vtt" srclang="en" label="English" default>
   </video>
   <div class="rulevote" style="margin-top:22px">
     <h3>TACTICS VOTE (DEMO) — ROUND 2: WHAT SHOULD VIPER DO?</h3>
@@ -63,12 +64,64 @@
 <footer><p>BRAWLVERSE · Season 1 in production</p><p class="aigc">All fighters, footage and artwork are AI-generated.</p></footer>
 
 <script>
+/* Device fingerprint (no dependency): canvas + WebGL + screen + tz + UA.
+ * Stable per browser; falls back to stored random id if collection fails. */
+function cyrb53(str, seed){
+  let h1=0xdeadbeef^seed, h2=0x41c6ce57^seed;
+  for(let i=0;i<str.length;i++){const ch=str.charCodeAt(i);
+    h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
+  h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+  return (h2>>>0).toString(16).padStart(8,'0')+(h1>>>0).toString(16).padStart(8,'0');
+}
+function canvasFP(){
+  try{
+    const c=document.createElement('canvas');c.width=220;c.height=40;
+    const x=c.getContext('2d');
+    x.textBaseline='top';x.font='16px Arial';
+    x.fillStyle='#f60';x.fillRect(10,5,100,25);
+    x.fillStyle='#069';x.font='italic 18px "Times New Roman"';
+    x.fillText('BRAWLVERSE!',12,8);
+    x.globalCompositeOperation='multiply';
+    x.fillStyle='rgba(255,0,255,0.6)';x.beginPath();x.arc(160,20,18,0,7);x.fill();
+    return c.toDataURL();
+  }catch(e){return 'nocanvas';}
+}
+function webglFP(){
+  try{
+    const c=document.createElement('canvas');
+    const gl=c.getContext('webgl')||c.getContext('experimental-webgl');
+    if(!gl)return 'nowebgl';
+    const dbg=gl.getExtension('WEBGL_debug_renderer_info');
+    return (dbg?gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL):gl.getParameter(gl.VENDOR))
+      +'|'+(dbg?gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER));
+  }catch(e){return 'nowebgl';}
+}
+function deviceFingerprint(){
+  const p=[];
+  p.push(canvasFP());
+  p.push(webglFP());
+  p.push([screen.width,screen.height,screen.colorDepth,window.devicePixelRatio||1].join('x'));
+  try{p.push(Intl.DateTimeFormat().resolvedOptions().timeZone+'|'+new Date().getTimezoneOffset());}catch(e){p.push('notz');}
+  p.push(navigator.language+'|'+((navigator.languages||[]).join(',')));
+  p.push(navigator.platform+'|'+navigator.hardwareConcurrency+'|'+(navigator.deviceMemory||'?'));
+  p.push(('ontouchstart'in window)?'touch':'notouch');
+  p.push(navigator.userAgent);
+  const s=p.join('###');
+  return 'fp-'+cyrb53(s,7)+cyrb53(s,99);
+}
+</script>
+<script>
 /* Tactics vote: talks to the P2-full API when API_BASE is set,
    falls back to browser-local demo counters when offline/unset. */
 const API_BASE = ''; // e.g. 'https://api.example.com' after deploy
 const BOUT_ID = 'qf1', ROUND_NO = 2;
 const K='bv_tactics', DK='bv_device';
 function deviceId(){
+  try{
+    const fp = deviceFingerprint();
+    if(fp && fp.length > 12) return fp;
+  }catch(e){}
   let d = localStorage.getItem(DK);
   if(!d){ d = 'dev-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
     localStorage.setItem(DK, d); }
