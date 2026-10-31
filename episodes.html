@@ -63,20 +63,50 @@
 <footer><p>BRAWLVERSE · Season 1 in production</p><p class="aigc">All fighters, footage and artwork are AI-generated.</p></footer>
 
 <script>
-const K='bv_tactics';
+/* Tactics vote: talks to the P2-full API when API_BASE is set,
+   falls back to browser-local demo counters when offline/unset. */
+const API_BASE = ''; // e.g. 'https://api.example.com' after deploy
+const BOUT_ID = 'qf1', ROUND_NO = 2;
+const K='bv_tactics', DK='bv_device';
+function deviceId(){
+  let d = localStorage.getItem(DK);
+  if(!d){ d = 'dev-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem(DK, d); }
+  return d;
+}
 function get(){try{return JSON.parse(localStorage.getItem(K))||{heavy:0,dodge:0,guard:0}}catch(e){return{heavy:0,dodge:0,guard:0}}}
-function draw(){
-  const v=get(),t=v.heavy+v.dodge+v.guard||1;
+function drawTally(t){
+  const total = (t.heavy+t.dodge+t.guard)||1;
   [['Heavy','heavy'],['Dodge','dodge'],['Guard','guard']].forEach(([l,k])=>{
-    document.getElementById('n'+l).textContent=v[k];
-    document.getElementById('b'+l).style.width=(v[k]/t*100)+'%';
+    document.getElementById('n'+l).textContent=t[k];
+    document.getElementById('b'+l).style.width=(t[k]/total*100)+'%';
   });
 }
-function vote(k){const v=get();v[k]++;localStorage.setItem(K,JSON.stringify(v));draw();}
+async function refresh(){
+  if(!API_BASE){ drawTally(get()); return; }
+  try{
+    const r = await fetch(`${API_BASE}/api/votes/tally?bout_id=${BOUT_ID}&round_no=${ROUND_NO}`);
+    const j = await r.json();
+    drawTally({heavy:j.tally.heavy, dodge:j.tally.dodge, guard:j.tally.guard});
+  }catch(e){ drawTally(get()); }
+}
+async function vote(k){
+  const key = k.toLowerCase();
+  if(!API_BASE){
+    const v=get(); v[key]++; localStorage.setItem(K,JSON.stringify(v)); drawTally(v); return;
+  }
+  try{
+    const r = await fetch(`${API_BASE}/api/votes`, {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({bout_id:BOUT_ID, round_no:ROUND_NO, choice:key, device_id:deviceId()})});
+    if(!r.ok) throw new Error(await r.text());
+  }catch(e){ const v=get(); v[key]++; localStorage.setItem(K,JSON.stringify(v)); }
+  refresh();
+}
 document.getElementById('tHeavy').onclick=()=>vote('heavy');
 document.getElementById('tDodge').onclick=()=>vote('dodge');
 document.getElementById('tGuard').onclick=()=>vote('guard');
-draw();
+refresh(); setInterval(refresh, 10000);
 </script>
 </body>
 </html>
