@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BOOKER ADMIN — BRAWLVERSE</title>
+<style>body{background:#0d0d0d;color:#eee;font-family:system-ui;max-width:900px;margin:0 auto;padding:20px}
+h1{color:#fc0;letter-spacing:2px}.card{background:#161616;border:1px solid #333;border-radius:10px;padding:16px;margin:14px 0}
+button{background:#fc0;border:0;border-radius:6px;padding:8px 16px;font-weight:700;cursor:pointer;margin:4px}
+button.ghost{background:#333;color:#eee}input{background:#222;color:#eee;border:1px solid #444;border-radius:6px;padding:8px;margin:4px}
+.bar{height:14px;background:#fc0;border-radius:4px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.small{color:#888;font-size:12px}</style>
+</head><body><h1>🥊 BOOKER ADMIN</h1>
+<div class="card"><div class="row"><input id="token" type="password" placeholder="Admin token" style="flex:1">
+<button onclick="load()">Connect</button></div><p class="small">Token = ADMIN_TOKEN env var on Vercel.</p></div>
+<div id="bouts"></div>
+<script>
+let TOKEN='';
+async function api(path,opts){opts=opts||{};opts.headers=Object.assign({'X-Admin-Token':TOKEN,'Content-Type':'application/json'},opts.headers||{});
+const r=await fetch(path,opts);if(!r.ok)throw new Error(await r.text());return r.json();}
+async function load(){TOKEN=document.getElementById('token').value;
+const bouts=await api('/api/bouts').catch(e=>{alert('Load failed: '+e.message);return null;});if(!bouts)return;
+const box=document.getElementById('bouts');box.innerHTML='';
+for(const b of bouts){const t=await api('/api/votes/tally?bout_id='+b.id+'&round_no='+b.round_no).catch(()=>null);
+const el=document.createElement('div');el.className='card';
+const bars=t?Object.entries(t.tally).map(([k,v])=>{const p=t.total?Math.round(v/t.total*100):0;
+return '<div>'+k.toUpperCase()+' — '+v+' ('+p+'%)<div class="bar" style="width:'+p+'%"></div></div>';}).join(''):'';
+el.innerHTML='<h3>'+b.title+' <span class="small">['+b.id+'] R'+b.round_no+' '+(b.voting_open?'🟢 OPEN':'🔴 CLOSED')+'</span></h3><p>'+b.fighter_a+' vs '+b.fighter_b+'</p>'+bars+'<div class="row"><button onclick="toggleBout(\''+b.id+'\','+!b.voting_open+')">'+(b.voting_open?'Close voting':'Open voting')+'</button><button class="ghost" onclick="nextRound(\''+b.id+'\','+(b.round_no+1)+')">→ Round '+(b.round_no+1)+'</button></div>';
+box.appendChild(el);}
+const add=document.createElement('div');add.className='card';
+add.innerHTML='<h3>+ New bout</h3><div class="row"><input id="nb_id" placeholder="id (qf5)"><input id="nb_title" placeholder="title"><input id="nb_a" placeholder="fighter A"><input id="nb_b" placeholder="fighter B"><button onclick="addBout()">Create</button></div>';
+box.appendChild(add);}
+async function toggleBout(id,open){await api('/api/admin/bouts?id='+id,{method:'PATCH',body:JSON.stringify({voting_open:open})});load();}
+async function nextRound(id,r){await api('/api/admin/bouts?id='+id,{method:'PATCH',body:JSON.stringify({round_no:r,voting_open:true})});load();}
+async function addBout(){const g=i=>document.getElementById(i).value;
+await api('/api/admin/bouts',{method:'POST',body:JSON.stringify({id:g('nb_id'),title:g('nb_title'),fighter_a:g('nb_a'),fighter_b:g('nb_b'),voting_open:false})});load();}
+</script></body></html>
