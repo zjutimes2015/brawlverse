@@ -50,3 +50,14 @@ python3 run_episode.py --bout qf1 --a "IRON JAW" --b "VIPER" \
 - 默认 dry-run；`--execute` 必须配 `--yes`，防手滑。
 - 执行前自动查 Replicate 余额。
 - BGM 永不在管线里加（平台热门曲库铁律）。
+
+## 实拍动作库（reference/）
+
+| 来源 | 目录 | 说明 |
+|---|---|---|
+| Mixamo 渲染（首选） | `reference/mixamo/` | mixamo.com 免费下 FBX（jab/cross/hook/uppercut 全套，商用免费），Blender 渲染成 mp4 |
+| CC0 素材 | `reference/cc0/` | Pexels/Pixabay/Mixkit，搜 boxing training |
+| 自拍 | `reference/shot/` | 手机拍，版权最干净 |
+
+选定底片后，在 brief 的 segment.reference 里填路径或 URL，`produce.py` 会自动处理。
+详见《BRAWLVERSE-实拍动作库方案-v1.0》。
