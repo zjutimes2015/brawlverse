@@ -62,6 +62,8 @@ class handler(BaseHTTPRequestHandler):
             sets.append("round_no = %s"); vals.append(int(p["round_no"]))
         if "voting_open" in p:
             sets.append("voting_open = %s"); vals.append(1 if p["voting_open"] else 0)
+        if "tactic_note" in p:
+            sets.append("tactic_note = %s"); vals.append(str(p["tactic_note"])[:300])
         if not sets:
             send(self, 400, {"error": "nothing to update"}, cors=False)
             return
