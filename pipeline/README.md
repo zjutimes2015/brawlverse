@@ -61,3 +61,9 @@ python3 run_episode.py --bout qf1 --a "IRON JAW" --b "VIPER" \
 
 选定底片后，在 brief 的 segment.reference 里填路径或 URL，`produce.py` 会自动处理。
 详见《BRAWLVERSE-实拍动作库方案-v1.0》。
+
+## Friday Fight Night（Phase B）
+- `round.py`：分支预渲染——投票窗口内把 2 个战术分支都生成好，播胜者。
+  `python3 round.py --bout qf1 --round 1 --tactic-a heavy --tactic-b dodge --fighter "IRON JAW" --reference reference/mixamo/qf1_combo.mp4`
+  默认 dry-run；`--execute --yes` 才花钱。输出 `rounds/<bout>-r<round>_{a,b}.mp4`，传公网 URL 后填到 `/api/admin/live`。
+- `b0_latency.py`：B0 延迟实测（p50/p95），决定真实时路线是否可行。需 Replicate 余额，余额 0 时直接报 BLOCKED。
