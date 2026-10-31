@@ -1,0 +1,13 @@
+services:
+  api:
+    build: ./server
+    ports:
+      - "8000:8000"
+    environment:
+      - ADMIN_TOKEN=${ADMIN_TOKEN:-change-me}
+    volumes:
+      - bv-data:/data
+    restart: unless-stopped
+
+volumes:
+  bv-data:
