@@ -121,6 +121,10 @@ CREATE TABLE IF NOT EXISTS fantasy_teams (
   UNIQUE (device_hash, season)
 );
 CREATE INDEX IF NOT EXISTS idx_fantasy_season ON fantasy_teams (season);
+CREATE TABLE IF NOT EXISTS webhook_events (
+  event_id TEXT PRIMARY KEY,
+  created_at DOUBLE PRECISION NOT NULL
+);
 """
 
 GATE_SEED = [
@@ -157,6 +161,7 @@ def _ensure():
             cur.execute("ALTER TABLE bouts ADD COLUMN IF NOT EXISTS tactic_note TEXT DEFAULT ''")
             cur.execute("ALTER TABLE bet_markets ADD COLUMN IF NOT EXISTS house_pool TEXT DEFAULT '{}'")
             cur.execute("ALTER TABLE votes ADD COLUMN IF NOT EXISTS weight INTEGER DEFAULT 1")
+            cur.execute("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS waffo_subscription_id TEXT DEFAULT ''")
             cur.execute("SELECT COUNT(*) AS n FROM bouts")
             if cur.fetchone()["n"] == 0:
                 now = time.time()
