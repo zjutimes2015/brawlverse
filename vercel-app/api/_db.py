@@ -39,6 +39,18 @@ CREATE TABLE IF NOT EXISTS rate_hits (
   ts DOUBLE PRECISION NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_rate_ip_ts ON rate_hits (ip, ts);
+CREATE TABLE IF NOT EXISTS fan_captions (
+  id BIGSERIAL PRIMARY KEY,
+  text TEXT NOT NULL,
+  nickname TEXT NOT NULL DEFAULT '匿名拳迷',
+  device_hash TEXT NOT NULL DEFAULT '',
+  ip TEXT NOT NULL DEFAULT '',
+  ip_ua TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending',
+  pinned INTEGER NOT NULL DEFAULT 0,
+  created_at DOUBLE PRECISION NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_captions_status ON fan_captions (status, created_at);
 """
 
 SEED = [
