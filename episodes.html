@@ -90,6 +90,7 @@
   </script>
   <div class="rulevote" style="margin-top:22px">
     <h3>TACTICS VOTE (DEMO) — ROUND 2: WHAT SHOULD VIPER DO?</h3>
+    <p id="tacticNote" style="display:none;color:#ffcc00;font-size:14px"></p>
     <div class="rv-buttons">
       <button id="tHeavy">HEAVY<br><small>go for the KO</small></button>
       <button id="tDodge">DODGE<br><small>slip and counter</small></button>
@@ -215,6 +216,12 @@ async function refresh(){
     const r = await fetch(`${API_BASE}/api/votes/tally?bout_id=${BOUT_ID}&round_no=${ROUND_NO}`);
     const j = await r.json();
     drawTally({heavy:j.tally.heavy, dodge:j.tally.dodge, guard:j.tally.guard});
+    const b = await fetch(`${API_BASE}/api/bouts`).then(r=>r.json());
+    const bout = (b||[]).find(x=>x.id===BOUT_ID);
+    const note = bout && bout.tactic_note;
+    const el = document.getElementById('tacticNote');
+    if(note){ el.style.display='block'; el.textContent='📢 上回合观众投票已执行：'+note; }
+    else { el.style.display='none'; }
   }catch(e){ drawTally(get()); }
 }
 async function vote(k){
