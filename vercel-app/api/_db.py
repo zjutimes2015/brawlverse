@@ -87,7 +87,28 @@ CREATE TABLE IF NOT EXISTS bet_ledger (
   created_at DOUBLE PRECISION NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_ledger_device ON bet_ledger (device_hash, created_at);
+CREATE TABLE IF NOT EXISTS fighter_records (
+  fighter TEXT PRIMARY KEY,
+  wins INTEGER NOT NULL DEFAULT 0,
+  losses INTEGER NOT NULL DEFAULT 0,
+  kos INTEGER NOT NULL DEFAULT 0,
+  updated_at DOUBLE PRECISION NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS ops_gates (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  note TEXT NOT NULL DEFAULT '',
+  updated_at DOUBLE PRECISION NOT NULL DEFAULT 0
+);
 """
+
+GATE_SEED = [
+    ("p1-teaser-posted", "P1 预告片已手动发布（三平台+热门BGM）"),
+    ("p1-window", "P1 七天验证窗口（发布日起 7 天）"),
+    ("p1-kill", "P1 杀线裁决：≥3 条 'when\\'s the fight' 类评论 或 单条 >5k 播放"),
+    ("p2-unlocked", "P2 解锁（需 p1-kill 先完成，代码强制）"),
+]
 
 SEED = [
     ("qf1", "QF1 — Sample Bout", "IRON JAW", "VIPER", 2, 1),
@@ -109,6 +130,9 @@ def _ensure():
     with psycopg.connect(dsn) as conn:
         with conn.cursor() as cur:
             cur.execute(SCHEMA)
+            # additive migrations for DBs created before these columns existed
+            cur.execute("ALTER TABLE bouts ADD COLUMN IF NOT EXISTS tactic_note TEXT DEFAULT ''")
+            cur.execute("ALTER TABLE bet_markets ADD COLUMN IF NOT EXISTS house_pool TEXT DEFAULT '{}'")
             cur.execute("SELECT COUNT(*) AS n FROM bouts")
             if cur.fetchone()["n"] == 0:
                 now = time.time()
@@ -116,6 +140,12 @@ def _ensure():
                     "INSERT INTO bouts (id,title,fighter_a,fighter_b,round_no,voting_open,created_at)"
                     " VALUES (%s,%s,%s,%s,%s,%s,%s)",
                     [(i, t, a, b, r, o, now) for (i, t, a, b, r, o) in SEED],
+                )
+            cur.execute("SELECT COUNT(*) AS n FROM ops_gates")
+            if cur.fetchone()["n"] == 0:
+                cur.executemany(
+                    "INSERT INTO ops_gates (id,label,status,updated_at) VALUES (%s,%s,'pending',%s)",
+                    [(i, l, time.time()) for (i, l) in GATE_SEED],
                 )
         conn.commit()
     _inited = True
