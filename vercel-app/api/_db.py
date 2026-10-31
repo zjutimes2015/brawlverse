@@ -101,6 +101,26 @@ CREATE TABLE IF NOT EXISTS ops_gates (
   note TEXT NOT NULL DEFAULT '',
   updated_at DOUBLE PRECISION NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS subscriptions (
+  device_hash TEXT PRIMARY KEY,
+  tier TEXT NOT NULL DEFAULT 'free',
+  status TEXT NOT NULL DEFAULT 'active',
+  stripe_customer_id TEXT NOT NULL DEFAULT '',
+  stripe_subscription_id TEXT NOT NULL DEFAULT '',
+  current_period_end DOUBLE PRECISION NOT NULL DEFAULT 0,
+  created_at DOUBLE PRECISION NOT NULL,
+  updated_at DOUBLE PRECISION NOT NULL
+);
+CREATE TABLE IF NOT EXISTS fantasy_teams (
+  id BIGSERIAL PRIMARY KEY,
+  device_hash TEXT NOT NULL,
+  season TEXT NOT NULL DEFAULT 's1',
+  team_name TEXT NOT NULL,
+  picks TEXT NOT NULL DEFAULT '[]',
+  created_at DOUBLE PRECISION NOT NULL,
+  UNIQUE (device_hash, season)
+);
+CREATE INDEX IF NOT EXISTS idx_fantasy_season ON fantasy_teams (season);
 """
 
 GATE_SEED = [
@@ -108,6 +128,9 @@ GATE_SEED = [
     ("p1-window", "P1 七天验证窗口（发布日起 7 天）"),
     ("p1-kill", "P1 杀线裁决：≥3 条 'when\\'s the fight' 类评论 或 单条 >5k 播放"),
     ("p2-unlocked", "P2 解锁（需 p1-kill 先完成，代码强制）"),
+    ("sub-ringside", "订阅 Ringside 开放（门槛：1 万粉）"),
+    ("sub-booker", "订阅 Booker/Promoter 开放（门槛：5 万粉）"),
+    ("sub-fantasy", "梦幻联赛上线（S2 开赛）"),
 ]
 
 SEED = [
@@ -133,6 +156,7 @@ def _ensure():
             # additive migrations for DBs created before these columns existed
             cur.execute("ALTER TABLE bouts ADD COLUMN IF NOT EXISTS tactic_note TEXT DEFAULT ''")
             cur.execute("ALTER TABLE bet_markets ADD COLUMN IF NOT EXISTS house_pool TEXT DEFAULT '{}'")
+            cur.execute("ALTER TABLE votes ADD COLUMN IF NOT EXISTS weight INTEGER DEFAULT 1")
             cur.execute("SELECT COUNT(*) AS n FROM bouts")
             if cur.fetchone()["n"] == 0:
                 now = time.time()
