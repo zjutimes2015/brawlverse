@@ -57,6 +57,7 @@ def init_db():
                 choice TEXT NOT NULL,
                 device_hash TEXT NOT NULL,
                 ip TEXT NOT NULL,
+                ip_ua TEXT NOT NULL DEFAULT '',
                 created_at REAL NOT NULL,
                 updated_at REAL NOT NULL,
                 UNIQUE (bout_id, round_no, device_hash)
@@ -150,13 +151,15 @@ def cast_vote(v: VoteIn, request: Request):
         if not bout["voting_open"]:
             raise HTTPException(409, "voting is closed for this bout")
         device_hash = hashlib.sha256(v.device_id.encode()).hexdigest()[:32]
+        ua = request.headers.get("user-agent", "")
+        ip_ua = hashlib.sha256(f"{ip}|{ua}".encode()).hexdigest()[:32]
         now = time.time()
         c.execute(
-            """INSERT INTO votes (bout_id, round_no, choice, device_hash, ip, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?)
+            """INSERT INTO votes (bout_id, round_no, choice, device_hash, ip, ip_ua, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT (bout_id, round_no, device_hash)
                DO UPDATE SET choice = excluded.choice, updated_at = excluded.updated_at""",
-            (v.bout_id, v.round_no, choice, device_hash, ip, now, now),
+            (v.bout_id, v.round_no, choice, device_hash, ip, ip_ua, now, now),
         )
     return {"ok": True, "bout_id": v.bout_id, "round_no": v.round_no, "choice": choice}
 
