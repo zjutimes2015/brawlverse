@@ -16,6 +16,7 @@ class handler(BaseHTTPRequestHandler):
         send(self, 200, [
             {"id": r["id"], "title": r["title"], "fighter_a": r["fighter_a"],
              "fighter_b": r["fighter_b"], "round_no": r["round_no"],
-             "voting_open": bool(r["voting_open"])}
+             "voting_open": bool(r["voting_open"]),
+             "tactic_note": r.get("tactic_note") or ""}
             for r in rows
         ])
