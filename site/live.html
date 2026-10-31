@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIVE — BRAWLVERSE Friday Fight Night</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="topnav"><a href="index.html">HOME</a> · <a href="fighters.html">FIGHTERS</a> · <a href="episodes.html">EPISODES</a> · <a href="storylines.html">STORYLINES</a></nav>
+<header class="hero small">
+  <h1 class="logo">FRIDAY FIGHT NIGHT</h1>
+  <p class="tagline">YOU CALL THE FIGHT — <span>LIVE</span></p>
+</header>
+
+<section class="sample">
+  <h2 id="live-title">LOADING…</h2>
+  <div id="live-status" class="note">connecting…</div>
+
+  <!-- 投票面板 -->
+  <div id="vote-panel" style="display:none">
+    <p>本回合战术投票（<span id="countdown">--</span>s 后截止）：</p>
+    <button id="vote-a" class="vote-btn"></button>
+    <button id="vote-b" class="vote-btn"></button>
+    <div id="tally" class="tally"></div>
+    <div id="vote-msg" class="note"></div>
+  </div>
+
+  <!-- 揭晓面板 -->
+  <div id="reveal-panel" style="display:none">
+    <p id="reveal-text" class="fire"></p>
+    <div class="videowrap">
+      <video id="reveal-video" controls preload="metadata"></video>
+      <div id="danmaku-layer"></div>
+    </div>
+  </div>
+
+  <!-- 弹幕投稿（复用 fan captions） -->
+  <div id="fanbox" class="fanbox" style="display:none">
+    <input id="fan-nick" maxlength="12" placeholder="昵称（默认匿名拳迷）">
+    <input id="fan-text" maxlength="40" placeholder="发一句解说/玩梗，40字内，精选后全场可见">
+    <button id="fan-send">发送弹幕</button>
+    <span id="fan-msg" class="note"></span>
+  </div>
+  <p class="note">回合押注盘口 → <a href="episodes.html">EPISODES</a>（betting API）</p>
+</section>
+
+<script src="assets/danmaku.min.js"></script>
+<script>
+window.BV_API_BASE = '';
+(function(){
+  var base = window.BV_API_BASE;
+  var title = document.getElementById('live-title');
+  var status = document.getElementById('live-status');
+  var votePanel = document.getElementById('vote-panel');
+  var revealPanel = document.getElementById('reveal-panel');
+
+  function fp(){
+    try{
+      var c = document.createElement('canvas').getContext('2d');
+      c.textBaseline = 'top'; c.font = '14px Arial';
+      c.fillText('brawlverse', 2, 2);
+      var s = c.canvas.toDataURL() + '|' + screen.width + 'x' + screen.height + '|' +
+              navigator.language + '|' + (navigator.hardwareConcurrency||0);
+      var h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+      for(var i=0;i<s.length;i++){ var ch=s.charCodeAt(i);
+        h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+      return 'fp-'+((h1>>>0).toString(16))+((h2>>>0).toString(16));
+    }catch(e){ return 'fp-fallback'; }
+  }
+
+  function tick(){
+    if(!base){ status.textContent = 'API 未接入（等 Vercel 域名）。'; return; }
+    fetch(base + '/api/live/state').then(function(r){ return r.json(); }).then(function(d){
+      title.textContent = (d.title||'FIGHT NIGHT') + ' — R' + d.round_no + ': ' +
+                          d.fighter_a + ' vs ' + d.fighter_b;
+      if(d.state === 'VOTING'){
+        status.textContent = '投票进行中';
+        votePanel.style.display = ''; revealPanel.style.display = 'none';
+        document.getElementById('countdown').textContent = d.seconds_left;
+        var ba = document.getElementById('vote-a'), bb = document.getElementById('vote-b');
+        ba.textContent = '🥊 ' + d.tactic_a.toUpperCase();
+        bb.textContent = '🥊 ' + d.tactic_b.toUpperCase();
+        ba.onclick = function(){ castVote(d.id, d.tactic_a); };
+        bb.onclick = function(){ castVote(d.id, d.tactic_b); };
+        var t = d.tally || {}, tot = (t[d.tactic_a]||0) + (t[d.tactic_b]||0) || 1;
+        document.getElementById('tally').innerHTML =
+          d.tactic_a + ' ' + Math.round((t[d.tactic_a]||0)/tot*100) + '% ｜ ' +
+          d.tactic_b + ' ' + Math.round((t[d.tactic_b]||0)/tot*100) + '%';
+      } else if(d.state === 'REVEAL' || d.state === 'done'){
+        status.textContent = d.state === 'REVEAL' ? '结果揭晓' : '本场结束';
+        votePanel.style.display = 'none'; revealPanel.style.display = '';
+        document.getElementById('reveal-text').textContent =
+          '🏆 胜出战术：' + (d.winning_branch === 'a' ? d.tactic_a : d.tactic_b).toUpperCase();
+        var v = document.getElementById('reveal-video');
+        if(d.video_url && v.getAttribute('src') !== d.video_url) v.setAttribute('src', d.video_url);
+      } else {
+        status.textContent = '状态：' + d.state + '（scheduled/LOCKED：等待开场或计票中）';
+        votePanel.style.display = 'none'; revealPanel.style.display = 'none';
+      }
+    }).catch(function(){ status.textContent = '连接失败，重试中…'; });
+  }
+
+  function castVote(rid, choice){
+    fetch(base + '/api/live/vote', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({round_id: rid, choice: choice, device_id: fp()})
+    }).then(function(r){ return r.json(); }).then(function(d){
+      document.getElementById('vote-msg').textContent =
+        d.ok ? '已投票：' + d.choice + '（权重 x' + d.weight + '）' : ('失败：' + (d.error||''));
+    });
+  }
+
+  // 弹幕层（与 episodes.html 同逻辑简化版）
+  if(base && typeof Danmaku !== 'undefined'){
+    document.getElementById('fanbox').style.display = '';
+    var dm = new Danmaku({container: document.getElementById('danmaku-layer')});
+    var sinceId = 0;
+    setInterval(function(){
+      fetch(base + '/api/captions/feed?since_id=' + sinceId).then(function(r){ return r.json(); })
+      .then(function(d){ (d.items||[]).forEach(function(it){ dm.emit({text: it.text}); 
+        if(it.id > sinceId) sinceId = it.id; }); });
+    }, 5000);
+    document.getElementById('fan-send').onclick = function(){
+      var nick = document.getElementById('fan-nick').value;
+      var text = document.getElementById('fan-text').value.trim();
+      if(!text) return;
+      fetch(base + '/api/captions', {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({nickname: nick, text: text, device_id: fp()})
+      }).then(function(r){ return r.json(); }).then(function(d){
+        document.getElementById('fan-msg').textContent = d.ok ? '已提交，审核后全场可见' : '失败';
+      });
+    };
+  }
+
+  tick(); setInterval(tick, 5000);
+})();
+</script>
+</body>
+</html>
