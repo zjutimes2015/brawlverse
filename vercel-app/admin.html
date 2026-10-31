@@ -10,6 +10,36 @@ button.ghost{background:#333;color:#eee}input{background:#222;color:#eee;border:
 <div class="card"><div class="row"><input id="token" type="password" placeholder="Admin token" style="flex:1">
 <button onclick="load()">Connect</button></div><p class="small">Token = ADMIN_TOKEN env var on Vercel.</p></div>
 <div id="bouts"></div>
+<div class="card"><h2>💬 观众字幕审核</h2>
+<div class="row"><button onclick="loadCaps('pending')">待审核</button>
+<button class="ghost" onclick="loadCaps('approved')">已通过</button>
+<button class="ghost" onclick="loadCaps('rejected')">已拒绝</button></div>
+<div id="caps"></div></div>
+<script>
+async function loadCaps(status){
+  const rows = await api('/api/admin/captions?status='+status).catch(e=>{alert('Load failed: '+e.message);return null;});
+  if(!rows) return;
+  const box = document.getElementById('caps'); box.innerHTML='';
+  if(!rows.length){ box.innerHTML='<p class="small">空</p>'; return; }
+  for(const c of rows){
+    const el = document.createElement('div'); el.className='row';
+    el.style.cssText='border-bottom:1px solid #333;padding:8px 0';
+    el.innerHTML = '<span>['+c.id+'] <b>'+esc(c.text)+'</b> <span class="small">— '+esc(c.nickname)+(c.pinned?' 📌':'')+'</span></span><span style="flex:1"></span>';
+    const btn = (label, action, ghost) => {
+      const b = document.createElement('button'); b.textContent = label;
+      if(ghost) b.className='ghost';
+      b.onclick = async () => { await api('/api/admin/captions?id='+c.id,{method:'PATCH',body:JSON.stringify({action})}); loadCaps(status); };
+      el.appendChild(b);
+    };
+    if(status==='pending'){ btn('通过','approve'); btn('置顶','pin'); btn('拒绝','reject',true); }
+    else if(status==='approved'){ btn(c.pinned?'取消置顶':'置顶', c.pinned?'unpin':'pin'); btn('拒绝','reject',true); }
+    else { btn('恢复通过','approve'); }
+    btn('删除','delete',true);
+    box.appendChild(el);
+  }
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+</script>
 <script>
 let TOKEN='';
 async function api(path,opts){opts=opts||{};opts.headers=Object.assign({'X-Admin-Token':TOKEN,'Content-Type':'application/json'},opts.headers||{});
