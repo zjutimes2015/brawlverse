@@ -15,10 +15,79 @@
 
 <section class="sample">
   <h2>EP0 — SAMPLE BOUT: IRON JAW vs VIPER</h2>
-  <video controls preload="metadata" poster="assets/viper-portrait.jpg">
-    <source src="brawlverse-sample-ep0.mp4" type="video/mp4">
-    <track kind="subtitles" src="ep0.vtt" srclang="en" label="English" default>
-  </video>
+  <div id="pinned-card" class="pinned" style="display:none">
+    <span class="fire">🔥 观众精选</span>
+    <span id="pinned-text"></span>
+    <span id="pinned-nick" class="nick"></span>
+  </div>
+  <div class="videowrap">
+    <video controls preload="metadata" poster="assets/viper-portrait.jpg">
+      <source src="brawlverse-sample-ep0.mp4" type="video/mp4">
+      <track kind="subtitles" src="ep0.vtt" srclang="en" label="English" default>
+    </video>
+    <div id="danmaku-layer"></div>
+  </div>
+  <div id="fanbox" class="fanbox" style="display:none">
+    <input id="fan-nick" maxlength="12" placeholder="昵称（默认匿名拳迷）">
+    <input id="fan-text" maxlength="40" placeholder="发一句解说/玩梗，40字内，精选后全场可见">
+    <button id="fan-send">发送弹幕</button>
+    <span id="fan-msg" class="note"></span>
+  </div>
+  <script src="assets/danmaku.min.js"></script>
+  <script>
+  /* Fan captions: danmaku layer + submit + pinned card. Needs API_BASE. */
+  (function(){
+    if(!window.BV_API_BASE || typeof Danmaku === 'undefined') return;
+    document.getElementById('fanbox').style.display = 'flex';
+    const danmaku = new Danmaku({ container: document.getElementById('danmaku-layer') });
+    let sinceId = 0;
+    function fanDeviceId(){
+      try { const fp = deviceFingerprint(); if(fp && fp.length > 12) return fp; } catch(e){}
+      let d = localStorage.getItem('bv_device');
+      if(!d){ d = 'dev-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem('bv_device', d); }
+      return d;
+    }
+    async function pollFeed(){
+      try{
+        const r = await fetch(`${window.BV_API_BASE}/api/captions/feed?since_id=${sinceId}`);
+        const j = await r.json();
+        for(const c of j.captions){
+          danmaku.emit({ text: `${c.nickname}: ${c.text}` });
+          if(c.id > sinceId) sinceId = c.id;
+        }
+      }catch(e){}
+    }
+    async function pollPinned(){
+      try{
+        const r = await fetch(`${window.BV_API_BASE}/api/captions/pinned`);
+        const j = await r.json();
+        const card = document.getElementById('pinned-card');
+        if(j.pinned){
+          document.getElementById('pinned-text').textContent = j.pinned.text;
+          document.getElementById('pinned-nick').textContent = '— ' + j.pinned.nickname;
+          card.style.display = 'block';
+        } else card.style.display = 'none';
+      }catch(e){}
+    }
+    document.getElementById('fan-send').onclick = async () => {
+      const text = document.getElementById('fan-text').value.trim();
+      const nick = document.getElementById('fan-nick').value.trim();
+      const msg = document.getElementById('fan-msg');
+      if(!text){ msg.textContent = '先写一句话！'; return; }
+      try{
+        const r = await fetch(`${window.BV_API_BASE}/api/captions`, {method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({text, nickname: nick, device_id: fanDeviceId()})});
+        const j = await r.json();
+        msg.textContent = j.msg || (r.ok ? '已提交！' : '发送失败');
+        if(r.ok) document.getElementById('fan-text').value = '';
+      }catch(e){ msg.textContent = '网络开小差，稍后再试'; }
+    };
+    pollFeed(); pollPinned();
+    setInterval(pollFeed, 10000); setInterval(pollPinned, 10000);
+  })();
+  </script>
   <div class="rulevote" style="margin-top:22px">
     <h3>TACTICS VOTE (DEMO) — ROUND 2: WHAT SHOULD VIPER DO?</h3>
     <div class="rv-buttons">
@@ -63,6 +132,10 @@
 
 <footer><p>BRAWLVERSE · Season 1 in production</p><p class="aigc">All fighters, footage and artwork are AI-generated.</p></footer>
 
+<script>
+/* Shared config: fill after backend deploy, e.g. 'https://brawlverse-api.vercel.app' */
+window.BV_API_BASE = '';
+</script>
 <script>
 /* Device fingerprint (no dependency): canvas + WebGL + screen + tz + UA.
  * Stable per browser; falls back to stored random id if collection fails. */
@@ -114,7 +187,7 @@ function deviceFingerprint(){
 <script>
 /* Tactics vote: talks to the P2-full API when API_BASE is set,
    falls back to browser-local demo counters when offline/unset. */
-const API_BASE = ''; // e.g. 'https://api.example.com' after deploy
+const API_BASE = window.BV_API_BASE || ''; // e.g. 'https://brawlverse-api.vercel.app' after deploy
 const BOUT_ID = 'qf1', ROUND_NO = 2;
 const K='bv_tactics', DK='bv_device';
 function deviceId(){
