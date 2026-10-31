@@ -17,7 +17,7 @@ class handler(BaseHTTPRequestHandler):
         bout_id = qs.get("bout_id", [None])[0]
         round_no = int(qs.get("round_no", ["1"])[0] or 1)
         rows = q_all(
-            "SELECT choice, COUNT(*) AS n FROM votes WHERE bout_id = %s AND round_no = %s GROUP BY choice",
+            "SELECT choice, SUM(weight) AS n FROM votes WHERE bout_id = %s AND round_no = %s GROUP BY choice",
             (bout_id, round_no),
         )
         tally = {"heavy": 0, "dodge": 0, "guard": 0}
