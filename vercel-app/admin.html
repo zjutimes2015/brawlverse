@@ -18,6 +18,12 @@ button.ghost{background:#333;color:#eee}input{background:#222;color:#eee;border:
 <input id="mk_sels" placeholder="selections, comma separated" style="flex:1">
 <button onclick="addMarket()">开盘</button><button class="ghost" onclick="loadMkts()">刷新</button></div>
 <p class="small">winner=押胜负 · method=押KO/判定 · round=押第几回合结束。称重仪式开盘，正赛开场锁盘，赛后结算。</p></div>
+<div class="card"><h2>💳 订阅 —  tiers & 手动开/关</h2>
+<div id="subs"></div>
+<div class="row"><input id="sub_dh" placeholder="device_hash (sha)">
+<select id="sub_tier"><option value="ringside">ringside $4.99</option><option value="booker">booker $14.99</option><option value="promoter">promoter $49</option><option value="free">free (revoke)</option></select>
+<button onclick="setSub()">设置</button><button class="ghost" onclick="loadSubs()">刷新</button></div>
+<p class="small">Stripe webhook 自动写库；这里是手动补发/测试/撤销。device_hash 是 sha 值（非原始 device_id）。</p></div>
 <div class="card"><h2>🚦 P1 GATE — 杀线看板</h2>
 <div id="gates"></div>
 <p class="small">杀线写进数据库，不进任何人的记忆。p2-unlocked 被代码锁死：p1-kill 未完成前点不开。</p></div>
@@ -90,6 +96,22 @@ async function addMarket(){
   await api('/api/admin/betting',{method:'POST',body:JSON.stringify({id:g('mk_id'),bout_id:g('mk_bout'),market_type:g('mk_type')||'winner',question:g('mk_q'),selections:sels})});
   loadMkts();
 }
+async function loadSubs(){
+  const d = await api('/api/admin/subscriptions').catch(e=>{alert('Load failed: '+e.message);return null;});
+  if(!d) return;
+  const box = document.getElementById('subs'); box.innerHTML='';
+  for(const s of d.subscriptions){
+    const el = document.createElement('div'); el.className='row';
+    el.innerHTML = '<span><b>'+esc(s.player)+'</b> '+esc(s.tier)+' ['+esc(s.status)+'] <span class="small">到 '+esc(s.period_end)+'</span></span>';
+    box.appendChild(el);
+  }
+  if(!d.subscriptions.length) box.innerHTML = '<span class="small">暂无订阅（Stripe 未接或无人订阅）</span>';
+}
+async function setSub(){
+  const g=i=>document.getElementById(i).value;
+  await api('/api/admin/subscriptions?device_hash='+encodeURIComponent(g('sub_dh')),{method:'PATCH',body:JSON.stringify({tier:g('sub_tier')})});
+  loadSubs();
+}
 async function loadGates(){
   const d = await api('/api/admin/gates').catch(e=>{alert('Load failed: '+e.message);return null;});
   if(!d) return;
@@ -151,7 +173,7 @@ box.appendChild(el);}
 const add=document.createElement('div');add.className='card';
 add.innerHTML='<h3>+ New bout</h3><div class="row"><input id="nb_id" placeholder="id (qf5)"><input id="nb_title" placeholder="title"><input id="nb_a" placeholder="fighter A"><input id="nb_b" placeholder="fighter B"><button onclick="addBout()">Create</button></div>';
 box.appendChild(add);
-loadMkts(); loadGates();}
+loadMkts(); loadGates(); loadSubs();}
 async function toggleBout(id,open){await api('/api/admin/bouts?id='+id,{method:'PATCH',body:JSON.stringify({voting_open:open})});load();}
 async function nextRound(id,r){await api('/api/admin/bouts?id='+id,{method:'PATCH',body:JSON.stringify({round_no:r,voting_open:true})});load();}
 async function addBout(){const g=i=>document.getElementById(i).value;
