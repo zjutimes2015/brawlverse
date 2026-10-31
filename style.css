@@ -49,6 +49,17 @@ video::cue{
   text-shadow:2px 2px 0 #000,-1px -1px 0 #000;
   background:rgba(0,0,0,.55);
 }
+.videowrap{position:relative;max-width:860px;margin:0 auto}
+.videowrap video{width:100%;display:block}
+#danmaku-layer{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.pinned{max-width:860px;margin:0 auto 12px;background:#1a1200;border:1px solid #ffcc00;border-radius:10px;padding:10px 16px;font-size:1.15em}
+.pinned .fire{color:#ffcc00;font-weight:800;margin-right:10px}
+.pinned .nick{color:#888;font-size:.8em;margin-left:10px}
+.fanbox{max-width:860px;margin:14px auto 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fanbox input{background:#1a1a1a;border:1px solid #444;color:#eee;border-radius:8px;padding:10px}
+#fan-nick{width:150px}#fan-text{flex:1;min-width:200px}
+.fanbox button{background:#ffcc00;border:0;border-radius:8px;padding:10px 18px;font-weight:800;cursor:pointer}
+.fanbox .note{color:#888;font-size:.85em}
 .card .trash{background:#0a0a0a;border-left:4px solid #ffcc00;padding:10px 12px;margin:10px 0;font-style:italic;color:#ddd;font-size:14px;line-height:1.55;text-align:left}
 .live{color:#ff3333;animation:blink 1.2s infinite}
 @keyframes blink{50%{opacity:.35}}
