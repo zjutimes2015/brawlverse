@@ -24,5 +24,34 @@ video{width:100%;max-width:900px;border:5px solid #ffcc00;border-radius:6px;back
 .vote ol{text-align:left;max-width:560px;margin:0 auto 20px;font-size:18px;line-height:2.2;color:#ddd}
 .vote b{color:#ffcc00}
 .soon{font-size:20px;color:#ffcc00;letter-spacing:1px}
+.topnav{padding:14px 22px;text-align:right;background:#000;border-bottom:2px solid #ffcc00}
+.topnav a{color:#ffcc00;text-decoration:none;letter-spacing:2px;font-size:15px}
+.hero.small{padding:44px 20px 34px}
+.forge-form{max-width:640px}
+.forge-form form{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+.forge-form input{background:#161616;border:2px solid #444;color:#f5f5f5;padding:14px;font-size:16px;border-radius:6px;font-family:inherit}
+.forge-form input:focus{border-color:#ffcc00;outline:none}
+.forge-form button{background:#ffcc00;color:#000;border:none;padding:14px;font-size:20px;letter-spacing:3px;font-weight:bold;border-radius:6px;cursor:pointer;font-family:inherit}
+.forge-form button:hover{background:#ffe066}
+.card.yellow{border-color:#ffcc00}
+.card.yellow h3{color:#ffcc00}
+.card .trash{background:#0a0a0a;border-left:4px solid #ffcc00;padding:10px 12px;margin:10px 0;font-style:italic;color:#ddd;font-size:14px;line-height:1.55;text-align:left}
+.live{color:#ff3333;animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.35}}
+.training video{border-color:#ff3333}
+.rulevote{margin-top:26px;background:#161616;border:3px solid #333;border-radius:8px;padding:24px;max-width:700px;margin-left:auto;margin-right:auto}
+.rulevote h3{color:#ffcc00;letter-spacing:2px;margin-bottom:16px}
+.rv-buttons{display:flex;gap:14px;justify-content:center;margin-bottom:18px}
+.rv-buttons button{flex:1;max-width:260px;background:#222;color:#fff;border:2px solid #555;padding:14px;font-size:17px;letter-spacing:1px;cursor:pointer;border-radius:6px;font-family:inherit}
+.rv-buttons button small{color:#999;font-size:12px}
+#voteRage{border-color:#ff3333}#voteFair{border-color:#39ff6a}
+.rv-buttons button:hover{background:#2c2c2c}
+.rv-row{display:flex;align-items:center;gap:10px;margin:8px 0;color:#bbb;font-size:14px}
+.rv-row span{width:44px;text-align:right}
+.rv-row .bar{flex:1;background:#0a0a0a;height:18px;border-radius:9px;overflow:hidden}
+.rv-row .bar div{height:100%;width:0;transition:width .4s}
+#barRage{background:#ff3333}#barFair{background:#39ff6a}
+.rv-row b{width:40px;color:#fff}
+.cta{color:#000;background:#ffcc00;padding:12px 26px;text-decoration:none;letter-spacing:2px;border-radius:6px;font-size:18px}
 footer{padding:34px 20px;border-top:6px solid #ffcc00;color:#888;font-size:14px}
 footer .aigc{margin-top:8px;font-size:12px;color:#666}
