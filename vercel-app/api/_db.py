@@ -125,6 +125,20 @@ CREATE TABLE IF NOT EXISTS webhook_events (
   event_id TEXT PRIMARY KEY,
   created_at DOUBLE PRECISION NOT NULL
 );
+CREATE TABLE IF NOT EXISTS live_rounds (
+  id TEXT PRIMARY KEY,
+  bout_id TEXT NOT NULL,
+  round_no INTEGER NOT NULL,
+  tactic_a TEXT NOT NULL,
+  tactic_b TEXT NOT NULL,
+  branch_a_url TEXT NOT NULL DEFAULT '',
+  branch_b_url TEXT NOT NULL DEFAULT '',
+  winning_branch TEXT NOT NULL DEFAULT '',
+  state TEXT NOT NULL DEFAULT 'scheduled',
+  vote_deadline DOUBLE PRECISION NOT NULL DEFAULT 0,
+  created_at DOUBLE PRECISION NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_live_bout ON live_rounds (bout_id, round_no);
 """
 
 GATE_SEED = [
@@ -135,6 +149,8 @@ GATE_SEED = [
     ("sub-ringside", "订阅 Ringside 开放（门槛：1 万粉）"),
     ("sub-booker", "订阅 Booker/Promoter 开放（门槛：5 万粉）"),
     ("sub-fantasy", "梦幻联赛上线（S2 开赛）"),
+    ("b-pilot", "Friday Fight Night 试播 1 场（门控：50 同时在线 或 200 总投票）"),
+    ("b-weekly", "Friday Fight Night 周更（试播通过后）"),
 ]
 
 SEED = [
