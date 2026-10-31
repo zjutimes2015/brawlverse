@@ -25,5 +25,25 @@
   </div>
 </section>
 <footer><p>BRAWLVERSE · <a href="fan-forge.html" style="color:#ffcc00">Forge your own fighter →</a></p><p class="aigc">All fighters, footage and artwork are AI-generated.</p></footer>
+<script>
+window.BV_API_BASE = '';
+/* Legacy ledger: every settled bout permanently writes W-L-KO here. */
+(async function(){
+  const base = window.BV_API_BASE || '';
+  if(!base) return;
+  try{
+    const r = await fetch(base + '/api/betting/records');
+    const j = await r.json();
+    const map = {};
+    (j.records || []).forEach(x => { map[x.fighter.toUpperCase()] = x; });
+    document.querySelectorAll('.card h3').forEach(h => {
+      const rec = map[h.textContent.trim().toUpperCase()];
+      if(!rec) return;
+      const stats = h.parentElement.querySelector('.stats span');
+      if(stats) stats.textContent = rec.wins + '-' + rec.losses + ' (' + rec.kos + ' KO)';
+    });
+  }catch(e){}
+})();
+</script>
 </body>
 </html>
