@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<nav class="topnav"><a href="fan-forge.html">FAN FORGE →</a></nav>
 <header class="hero">
   <div class="burst"></div>
   <h1 class="logo">BRAWLVERSE</h1>
@@ -22,6 +23,26 @@
   <p class="note">AI-generated sample · Season 1 coming soon</p>
 </section>
 
+<section class="training">
+  <h2><span class="live">● LIVE</span> TRAINING GROUND — 24/7</h2>
+  <p class="note" style="margin-bottom:16px">No bout this week? The gym never sleeps. Our fighters spar around the clock — and <b>you set the rules</b>.</p>
+  <video autoplay muted loop playsinline preload="metadata">
+    <source src="training-sparring.mp4" type="video/mp4">
+  </video>
+  <div class="rulevote">
+    <h3>NEXT EXHIBITION — YOU PICK THE RULES</h3>
+    <div class="rv-buttons">
+      <button id="voteRage">RAGE MODE<br><small>no defense, all power</small></button>
+      <button id="voteFair">FAIR PLAY<br><small>classic 3-round rules</small></button>
+    </div>
+    <div class="rv-bars">
+      <div class="rv-row"><span>RAGE</span><div class="bar"><div id="barRage"></div></div><b id="nRage">0</b></div>
+      <div class="rv-row"><span>FAIR</span><div class="bar"><div id="barFair"></div></div><b id="nFair">0</b></div>
+    </div>
+    <p class="note">Prototype: votes stored in your browser.</p>
+  </div>
+</section>
+
 <section class="fighters">
   <h2>THE FIGHTERS</h2>
   <div class="cards">
@@ -29,6 +50,7 @@
       <img src="assets/iron-jaw-portrait.jpg" alt="Iron Jaw">
       <h3>IRON JAW</h3>
       <p class="style">Heavyweight Brawler</p>
+      <p class="trash">"VIPER's gonna need more than speed when my fist rearranges his face. See you in the ring, snake."</p>
       <p class="bio">"He takes a punch like iron… and hits back like hell." Undefeated in street circuits. Zero finesse, all thunder.</p>
       <div class="stats"><span>0-0</span><span>KO rate —</span></div>
     </div>
@@ -36,6 +58,7 @@
       <img src="assets/viper-portrait.jpg" alt="Viper">
       <h3>VIPER</h3>
       <p class="style">Lightweight Menace</p>
+      <p class="trash">"Jaw's got a chin of iron and a brain of rust. I'll be gone before his punch arrives — and he'll wake up on the canvas."</p>
       <p class="bio">"Coiled. Ready. Lethal." A counter-punching phantom. You never see the punch that ends you.</p>
       <div class="stats"><span>0-0</span><span>KO rate —</span></div>
     </div>
@@ -46,6 +69,7 @@
     <div class="card locked"><div class="q">?</div><h3>???</h3><p class="style">Revealed soon</p></div>
     <div class="card locked"><div class="q">?</div><h3>???</h3><p class="style">Revealed soon</p></div>
   </div>
+  <p class="soon" style="margin-top:26px"><a href="fan-forge.html" class="cta">FORGE YOUR OWN FIGHTER →</a></p>
 </section>
 
 <section class="vote">
@@ -62,5 +86,21 @@
   <p>BRAWLVERSE · Season 1 in production</p>
   <p class="aigc">All fighters, footage and artwork are AI-generated.</p>
 </footer>
+
+<script>
+const K='bv_rulevote';
+function get(){try{return JSON.parse(localStorage.getItem(K))||{rage:0,fair:0}}catch(e){return{rage:0,fair:0}}}
+function draw(){
+  const v=get(),t=v.rage+v.fair||1;
+  document.getElementById('nRage').textContent=v.rage;
+  document.getElementById('nFair').textContent=v.fair;
+  document.getElementById('barRage').style.width=(v.rage/t*100)+'%';
+  document.getElementById('barFair').style.width=(v.fair/t*100)+'%';
+}
+function vote(k){const v=get();v[k]++;localStorage.setItem(K,JSON.stringify(v));draw();}
+document.getElementById('voteRage').onclick=()=>vote('rage');
+document.getElementById('voteFair').onclick=()=>vote('fair');
+draw();
+</script>
 </body>
 </html>
