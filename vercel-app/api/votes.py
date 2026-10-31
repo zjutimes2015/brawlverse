@@ -3,8 +3,10 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "subscription"))
 from _db import (CHOICES, check_rate, client_ip, q_one, q_write, read_json,
                  send, send_cors_preflight, sha)
+from _entitlements import entitlements  # noqa: E402
 
 from http.server import BaseHTTPRequestHandler
 
@@ -40,11 +42,14 @@ class handler(BaseHTTPRequestHandler):
             return
         ua = self.headers.get("User-Agent", "")
         now = time.time()
+        dh = sha(str(device_id))
+        weight = entitlements(dh)["vote_weight"]
         q_write(
-            """INSERT INTO votes (bout_id, round_no, choice, device_hash, ip, ip_ua, created_at, updated_at)
-               VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+            """INSERT INTO votes (bout_id, round_no, choice, device_hash, ip, ip_ua, weight, created_at, updated_at)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
                ON CONFLICT (bout_id, round_no, device_hash)
-               DO UPDATE SET choice = EXCLUDED.choice, updated_at = EXCLUDED.updated_at""",
-            (bout_id, int(round_no), choice, sha(str(device_id)), ip, sha(ip + "|" + ua), now, now),
+               DO UPDATE SET choice = EXCLUDED.choice, weight = EXCLUDED.weight, updated_at = EXCLUDED.updated_at""",
+            (bout_id, int(round_no), choice, dh, ip, sha(ip + "|" + ua), weight, now, now),
         )
-        send(self, 200, {"ok": True, "bout_id": bout_id, "round_no": int(round_no), "choice": choice})
+        send(self, 200, {"ok": True, "bout_id": bout_id, "round_no": int(round_no),
+                         "choice": choice, "weight": weight})
