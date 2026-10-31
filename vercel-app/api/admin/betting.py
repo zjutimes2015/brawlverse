@@ -59,11 +59,24 @@ class handler(BaseHTTPRequestHandler):
         if q_one("SELECT id FROM bet_markets WHERE id = %s", (mid,)):
             send(self, 409, {"error": "market id exists"})
             return
+        house = v.get("house_pool") or {}
+        if not isinstance(house, dict):
+            send(self, 400, {"error": "house_pool must be an object {selection: amount}"})
+            return
+        for s, amt in house.items():
+            if s not in sels:
+                send(self, 400, {"error": "house_pool selection not in selections: " + s})
+                return
+            try:
+                house[s] = int(amt)
+            except Exception:
+                send(self, 400, {"error": "house_pool amounts must be integers"})
+                return
         now = time.time()
         q_write(
-            "INSERT INTO bet_markets (id, bout_id, market_type, question, selections, status, created_at)"
-            " VALUES (%s,%s,%s,%s,%s,'open',%s)",
-            (mid, bout_id, mtype, question, _json.dumps(sels), now),
+            "INSERT INTO bet_markets (id, bout_id, market_type, question, selections, house_pool, status, created_at)"
+            " VALUES (%s,%s,%s,%s,%s,%s,'open',%s)",
+            (mid, bout_id, mtype, question, _json.dumps(sels), _json.dumps(house), now),
         )
         send(self, 200, {"ok": True, "id": mid})
 
